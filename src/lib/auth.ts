@@ -1,19 +1,14 @@
-// Authentication utility for managing tokens
-
 const TOKEN_KEY = 'authToken'
 
-// Check if we're in the browser (not SSR)
 const isBrowser = typeof window !== 'undefined'
 
 export const auth = {
-  // Store token (localStorage)
   setToken: (token: string) => {
     if (isBrowser) {
       localStorage.setItem(TOKEN_KEY, token)
     }
   },
 
-  // Get token
   getToken: (): string | null => {
     if (isBrowser) {
       return localStorage.getItem(TOKEN_KEY)
@@ -21,14 +16,12 @@ export const auth = {
     return null
   },
 
-  // Remove token (logout)
   removeToken: () => {
     if (isBrowser) {
       localStorage.removeItem(TOKEN_KEY)
     }
   },
 
-  // Check if user is authenticated
   isAuthenticated: (): boolean => {
     if (isBrowser) {
       return !!localStorage.getItem(TOKEN_KEY)
@@ -36,7 +29,6 @@ export const auth = {
     return false
   },
 
-  // Get headers with auth token for API requests
   getAuthHeaders: (): HeadersInit => {
     const token = auth.getToken()
     return {
@@ -46,7 +38,6 @@ export const auth = {
   },
 }
 
-// Alternative: Using sessionStorage (clears on tab close)
 export const sessionAuth = {
   setToken: (token: string) => {
     sessionStorage.setItem(TOKEN_KEY, token)
@@ -73,7 +64,6 @@ export const sessionAuth = {
   },
 }
 
-// Alternative: Using cookies (if you want to manage client-side cookies)
 export const cookieAuth = {
   setToken: (token: string, days: number = 7) => {
     const expires = new Date()

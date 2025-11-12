@@ -1,4 +1,3 @@
-// API utility for making authenticated requests
 import { auth } from './auth'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -11,10 +10,10 @@ export class ApiError extends Error {
   ) {
     super(message)
     this.name = 'ApiError'
+    Object.setPrototypeOf(this, ApiError.prototype)
   }
 }
 
-// Generic API request function
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
@@ -24,7 +23,7 @@ export async function apiRequest<T = any>(
   const config: RequestInit = {
     ...options,
     headers: {
-      ...auth.getAuthHeaders(), // Automatically adds token
+      ...auth.getAuthHeaders(),
       ...options.headers,
     },
   }
@@ -32,22 +31,17 @@ export async function apiRequest<T = any>(
   try {
     const response = await fetch(url, config)
 
-    // Handle 401 Unauthorized - token expired or invalid
+    const data = await response.json().catch(() => ({}))
+
     if (response.status === 401) {
       auth.removeToken()
       window.location.href = '/login'
-      throw new ApiError(401, 'Unauthorized')
+      throw new ApiError(401, data?.message || 'Não autorizado')
     }
 
-    // Parse response
-    const data = await response.json().catch(() => null)
-
     if (!response.ok) {
-      throw new ApiError(
-        response.status,
-        data?.message || 'Request failed',
-        data
-      )
+      const errorMessage = data?.message || data?.error || `Erro na requisição: ${response.status}`
+      throw new ApiError(response.status, errorMessage, data)
     }
 
     return data
@@ -55,11 +49,13 @@ export async function apiRequest<T = any>(
     if (error instanceof ApiError) {
       throw error
     }
-    throw new Error('Network error')
+    if (error instanceof Error) {
+      throw new ApiError(0, error.message)
+    }
+    throw new ApiError(0, 'Erro de rede')
   }
 }
 
-// Convenience methods
 export const api = {
   get: <T = any>(endpoint: string, options?: RequestInit) =>
     apiRequest<T>(endpoint, { ...options, method: 'GET' }),
@@ -88,7 +84,3 @@ export const api = {
   delete: <T = any>(endpoint: string, options?: RequestInit) =>
     apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),
 }
-
-// Example usage in your components:
-// const data = await api.get('/users/me')
-// const result = await api.post('/login', { email, password })

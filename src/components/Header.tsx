@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 
 import { useState } from 'react'
-import { Home, Menu, LogIn, LogOut, X } from 'lucide-react'
+import { Home, Menu, LogIn, LogOut, X, Users, FileText } from 'lucide-react'
 import { auth } from '../lib/auth'
 
 export default function Header() {
@@ -26,7 +26,7 @@ export default function Header() {
           <Menu size={24} />
         </button>
         <h1 className="ml-4 text-xl font-semibold">
-          <Link to="/">My App</Link>
+          <Link to="/">Sistema de Testes</Link>
         </h1>
       </header>
 
@@ -36,11 +36,11 @@ export default function Header() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold">Navigation</h2>
+          <h2 className="text-xl font-bold">Menu</h2>
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-            aria-label="Close menu"
+            aria-label="Fechar menu"
           >
             <X size={24} />
           </button>
@@ -57,8 +57,38 @@ export default function Header() {
             }}
           >
             <Home size={20} />
-            <span className="font-medium">Home</span>
+            <span className="font-medium">Início</span>
           </Link>
+
+          {isAuthenticated && (
+            <>
+              <Link
+                to="/users"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+                activeProps={{
+                  className:
+                    'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
+                }}
+              >
+                <Users size={20} />
+                <span className="font-medium">Usuários</span>
+              </Link>
+
+              <Link
+                to="/tests"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+                activeProps={{
+                  className:
+                    'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
+                }}
+              >
+                <FileText size={20} />
+                <span className="font-medium">Testes</span>
+              </Link>
+            </>
+          )}
 
           {!isAuthenticated ? (
             <Link
@@ -71,7 +101,7 @@ export default function Header() {
               }}
             >
               <LogIn size={20} />
-              <span className="font-medium">Login</span>
+              <span className="font-medium">Entrar</span>
             </Link>
           ) : (
             <button
@@ -79,7 +109,7 @@ export default function Header() {
               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2 w-full text-left"
             >
               <LogOut size={20} />
-              <span className="font-medium">Logout</span>
+              <span className="font-medium">Sair</span>
             </button>
           )}
         </nav>

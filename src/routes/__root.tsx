@@ -2,6 +2,8 @@ import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
+  useRouterState,
+  Outlet,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -29,7 +31,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Sistema de Testes',
       },
     ],
     links: [
@@ -40,18 +42,21 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
 
-  shellComponent: RootDocument,
+  component: RootComponent,
 })
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootComponent() {
+  const router = useRouterState()
+  const isLoginPage = router.location.pathname === '/login'
+
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
-      <body>
-        <Header />
-        {children}
+      <body className={isLoginPage ? 'overflow-hidden' : ''}>
+        {!isLoginPage && <Header />}
+        <Outlet />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
