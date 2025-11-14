@@ -13,7 +13,10 @@ interface UserListProps {
   onUpdate: () => void
 }
 
-export const UserList = memo(function UserList({ users, onUpdate }: UserListProps) {
+export const UserList = memo(function UserList({
+  users,
+  onUpdate,
+}: UserListProps) {
   if (users.length === 0) {
     return null
   }
@@ -21,11 +24,7 @@ export const UserList = memo(function UserList({ users, onUpdate }: UserListProp
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {users.map((user) => (
-        <UserCard
-          key={user.id}
-          user={user}
-          onUpdate={onUpdate}
-        />
+        <UserCard key={user.id} user={user} onUpdate={onUpdate} />
       ))}
     </div>
   )

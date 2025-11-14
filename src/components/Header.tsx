@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 
 import { useState } from 'react'
-import { Home, Menu, LogIn, LogOut, X, Users, FileText } from 'lucide-react'
+import { Home, Menu, LogIn, LogOut, X, Users, FileText, ClipboardList } from 'lucide-react'
 import { auth } from '../lib/auth'
 
 export default function Header() {
@@ -86,6 +86,19 @@ export default function Header() {
               >
                 <FileText size={20} />
                 <span className="font-medium">Testes</span>
+              </Link>
+
+              <Link
+                to="/assigned-tests"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+                activeProps={{
+                  className:
+                    'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
+                }}
+              >
+                <ClipboardList size={20} />
+                <span className="font-medium">Meus Testes</span>
               </Link>
             </>
           )}

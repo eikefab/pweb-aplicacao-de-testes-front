@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'authToken'
+const USER_ID_KEY = 'userId'
 
 const isBrowser = typeof window !== 'undefined'
 
@@ -19,6 +20,7 @@ export const auth = {
   removeToken: () => {
     if (isBrowser) {
       localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_ID_KEY)
     }
   },
 
@@ -34,6 +36,25 @@ export const auth = {
     return {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
+    }
+  },
+
+  setUserId: (userId: string) => {
+    if (isBrowser) {
+      localStorage.setItem(USER_ID_KEY, userId)
+    }
+  },
+
+  getUserId: (): string | null => {
+    if (isBrowser) {
+      return localStorage.getItem(USER_ID_KEY)
+    }
+    return null
+  },
+
+  removeUserId: () => {
+    if (isBrowser) {
+      localStorage.removeItem(USER_ID_KEY)
     }
   },
 }
@@ -75,7 +96,7 @@ export const cookieAuth = {
     const name = TOKEN_KEY + '='
     const decodedCookie = decodeURIComponent(document.cookie)
     const cookies = decodedCookie.split(';')
-    
+
     for (let cookie of cookies) {
       cookie = cookie.trim()
       if (cookie.indexOf(name) === 0) {

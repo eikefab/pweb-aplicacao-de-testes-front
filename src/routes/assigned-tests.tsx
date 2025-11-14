@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Plus, Calendar, FileText } from 'lucide-react'
-import { api } from '../../lib/api'
-import TestModal from '../../components/TestModal'
-import { ErrorDisplay } from '../../components/ErrorDisplay'
+import { Calendar, FileText, ClipboardList } from 'lucide-react'
+import { api } from '../lib/api'
+import { ErrorDisplay } from '../components/ErrorDisplay'
 
-export const Route = createFileRoute('/tests/')({ component: Tests })
+export const Route = createFileRoute('/assigned-tests')({
+  component: AssignedTests,
+})
 
 interface Test {
   id: string
@@ -17,34 +17,29 @@ interface Test {
   createdAt?: string
 }
 
-function Tests() {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-
+function AssignedTests() {
   const {
     data: tests,
     isLoading,
     error,
-    refetch,
   } = useQuery<Test[]>({
-    queryKey: ['tests'],
-    queryFn: () => api.get('/tests'),
+    queryKey: ['assigned-tests'],
+    queryFn: () => api.get('/tests/assigned'),
   })
 
   return (
     <div className="min-h-screen overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-6 py-12 h-full overflow-y-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Testes</h1>
-            <p className="text-gray-300">Gerencie os testes do sistema</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-cyan-500/20 rounded-full">
+              <ClipboardList className="w-8 h-8 text-cyan-400" />
+            </div>
+            <h1 className="text-4xl font-bold text-white">Meus Testes</h1>
           </div>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
-          >
-            <Plus size={20} />
-            Novo Teste
-          </button>
+          <p className="text-xl text-gray-300">
+            Testes atribuídos a você
+          </p>
         </div>
 
         <ErrorDisplay
@@ -101,24 +96,12 @@ function Tests() {
 
         {!isLoading && (!tests || tests.length === 0) && (
           <div className="text-center py-20">
-            <div className="text-gray-400 text-lg mb-4">
-              Nenhum teste encontrado
+            <div className="text-gray-400 text-lg">
+              Nenhum teste atribuído a você
             </div>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="text-cyan-400 hover:text-cyan-300 transition-colors"
-            >
-              Criar o primeiro teste
-            </button>
           </div>
         )}
       </div>
-
-      <TestModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => refetch()}
-      />
     </div>
   )
 }

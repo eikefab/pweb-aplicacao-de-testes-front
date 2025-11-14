@@ -5,6 +5,7 @@ import { UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { UserList, CreateUserModal } from '@/features/users/components'
+import { ErrorDisplay } from '@/components/ErrorDisplay'
 
 export const Route = createFileRoute('/users')({ component: Users })
 
@@ -17,7 +18,12 @@ interface User {
 function Users() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
-  const { data: users, isLoading, refetch } = useQuery<User[]>({
+  const {
+    data: users,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => api.get('/users'),
   })
@@ -39,6 +45,11 @@ function Users() {
           </Button>
         </div>
 
+        <ErrorDisplay
+          error={error}
+          fallbackMessage="Falha ao carregar usuários. Tente novamente."
+        />
+
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-white text-xl">Carregando...</div>
@@ -47,7 +58,9 @@ function Users() {
           <UserList users={users} onUpdate={refetch} />
         ) : (
           <div className="text-center py-20">
-            <div className="text-gray-400 text-lg mb-4">Nenhum usuário encontrado</div>
+            <div className="text-gray-400 text-lg mb-4">
+              Nenhum usuário encontrado
+            </div>
             <Button
               variant="link"
               onClick={() => setIsCreateModalOpen(true)}

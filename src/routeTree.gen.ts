@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AssignedTestsRouteImport } from './routes/assigned-tests'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TestsIndexRouteImport } from './routes/tests/index'
 import { Route as TestsTestIdRouteImport } from './routes/tests/$testId'
@@ -23,6 +24,11 @@ const UsersRoute = UsersRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssignedTestsRoute = AssignedTestsRouteImport.update({
+  id: '/assigned-tests',
+  path: '/assigned-tests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +49,7 @@ const TestsTestIdRoute = TestsTestIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assigned-tests': typeof AssignedTestsRoute
   '/login': typeof LoginRoute
   '/users': typeof UsersRoute
   '/tests/$testId': typeof TestsTestIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assigned-tests': typeof AssignedTestsRoute
   '/login': typeof LoginRoute
   '/users': typeof UsersRoute
   '/tests/$testId': typeof TestsTestIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assigned-tests': typeof AssignedTestsRoute
   '/login': typeof LoginRoute
   '/users': typeof UsersRoute
   '/tests/$testId': typeof TestsTestIdRoute
@@ -65,14 +74,34 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/users' | '/tests/$testId' | '/tests'
+  fullPaths:
+    | '/'
+    | '/assigned-tests'
+    | '/login'
+    | '/users'
+    | '/tests/$testId'
+    | '/tests'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/users' | '/tests/$testId' | '/tests'
-  id: '__root__' | '/' | '/login' | '/users' | '/tests/$testId' | '/tests/'
+  to:
+    | '/'
+    | '/assigned-tests'
+    | '/login'
+    | '/users'
+    | '/tests/$testId'
+    | '/tests'
+  id:
+    | '__root__'
+    | '/'
+    | '/assigned-tests'
+    | '/login'
+    | '/users'
+    | '/tests/$testId'
+    | '/tests/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssignedTestsRoute: typeof AssignedTestsRoute
   LoginRoute: typeof LoginRoute
   UsersRoute: typeof UsersRoute
   TestsTestIdRoute: typeof TestsTestIdRoute
@@ -93,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assigned-tests': {
+      id: '/assigned-tests'
+      path: '/assigned-tests'
+      fullPath: '/assigned-tests'
+      preLoaderRoute: typeof AssignedTestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssignedTestsRoute: AssignedTestsRoute,
   LoginRoute: LoginRoute,
   UsersRoute: UsersRoute,
   TestsTestIdRoute: TestsTestIdRoute,

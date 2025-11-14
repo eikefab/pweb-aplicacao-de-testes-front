@@ -11,7 +11,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
+import { ErrorDisplay } from '@/components/ErrorDisplay'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 interface User {
   id: string
@@ -32,11 +34,17 @@ interface EditUserModalProps {
   user: User | null
 }
 
-export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModalProps) {
+export function EditUserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  user,
+}: EditUserModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -57,23 +65,23 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
   const editUserMutation = useMutation({
     mutationFn: async (data: EditUser) => {
       const updates: EditUser = {}
-      
+
       if (data.name && data.name.trim() && data.name !== user?.name) {
         updates.name = data.name
       }
-      
+
       if (data.email && data.email.trim() && data.email !== user?.email) {
         updates.email = data.email
       }
-      
+
       if (data.password && data.password.trim()) {
         updates.password = data.password
       }
-      
+
       if (Object.keys(updates).length === 0) {
         throw new Error('Nenhum dado para atualizar.')
       }
-      
+
       return api.patch(`/users/${user?.id}`, updates)
     },
     onSuccess: () => {
@@ -89,9 +97,12 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
   }
 
   const handleDelete = () => {
-    if (window.confirm(`Tem certeza que deseja excluir o usuário ${user?.name}?`)) {
-      deleteUserMutation.mutate()
-    }
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    deleteUserMutation.mutate()
+    setIsDeleteDialogOpen(false)
   }
 
   return (
@@ -104,13 +115,15 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
           </DialogDescription>
         </DialogHeader>
 
-        {editUserMutation.isError && (
-          <div className="p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
-            {editUserMutation.error instanceof ApiError 
-              ? editUserMutation.error.message 
-              : 'Falha ao editar usuário. Tente novamente.'}
-          </div>
-        )}
+        <ErrorDisplay
+          error={editUserMutation.error}
+          fallbackMessage="Falha ao editar usuário. Tente novamente."
+        />
+
+        <ErrorDisplay
+          error={deleteUserMutation.error}
+          fallbackMessage="Falha ao excluir usuário. Tente novamente."
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -142,7 +155,10 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
 
           <div className="space-y-2">
             <Label htmlFor="edit-password">
-              Nova Senha <span className="text-gray-500 text-xs">(deixe em branco para não alterar)</span>
+              Nova Senha{' '}
+              <span className="text-gray-500 text-xs">
+                (deixe em branco para não alterar)
+              </span>
             </Label>
             <div className="relative">
               <Input
@@ -185,6 +201,18 @@ export function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModa
             </Button>
           </div>
         </form>
+
+        <ConfirmDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          title="Excluir Usuário"
+          description={`Tem certeza que deseja excluir o usuário ${user?.name}? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="destructive"
+          isLoading={deleteUserMutation.isPending}
+        />
       </DialogContent>
     </Dialog>
   )

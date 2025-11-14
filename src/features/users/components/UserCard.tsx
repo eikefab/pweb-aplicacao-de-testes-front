@@ -20,7 +20,7 @@ export function UserCard({ user, onUpdate }: UserCardProps) {
 
   return (
     <>
-      <Card 
+      <Card
         className="bg-slate-800/50 border-slate-700 hover:border-cyan-500/50 transition-all cursor-pointer"
         onClick={() => setIsEditModalOpen(true)}
       >
@@ -39,7 +39,8 @@ export function UserCard({ user, onUpdate }: UserCardProps) {
               </div>
               {user.createdAt && (
                 <p className="text-gray-500 text-xs mt-2">
-                  Criado em {new Date(user.createdAt).toLocaleDateString('pt-BR')}
+                  Criado em{' '}
+                  {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                 </p>
               )}
             </div>

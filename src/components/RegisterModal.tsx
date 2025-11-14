@@ -1,25 +1,49 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { X, Eye, EyeOff } from 'lucide-react'
-import { api, ApiError } from '../lib/api'
+import { Eye, EyeOff } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { api } from '../lib/api'
+import { auth } from '../lib/auth'
+import { ErrorDisplay } from './ErrorDisplay'
 
 interface RegisterModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess?: (response: { token: string }) => void
+  onSuccess?: (response: {
+    user: { id: string; email: string; name: string }
+    token: string
+  }) => void
 }
 
-export default function RegisterModal({ isOpen, onClose, onSuccess }: RegisterModalProps) {
+export default function RegisterModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: RegisterModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: { name: string; email: string; password: string }) => {
-      return api.post<{ token: string }>('/auth/register', credentials)
+    mutationFn: async (credentials: {
+      name: string
+      email: string
+      password: string
+    }) => {
+      return api.post<{
+        user: { id: string; email: string; name: string }
+        token: string
+      }>('/auth/register', credentials)
     },
     onSuccess: (response) => {
+      auth.setUserId(response.user.id)
       onClose()
       onSuccess?.(response)
     },
@@ -30,39 +54,27 @@ export default function RegisterModal({ isOpen, onClose, onSuccess }: RegisterMo
     registerMutation.mutate({ name, email, password })
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      <div className="relative w-full max-w-md bg-slate-800/95 border border-slate-700 rounded-xl p-8 shadow-2xl">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 hover:text-white transition-colors"
-        >
-          <X size={24} />
-        </button>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-3xl font-bold">Criar Usuário</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Preencha os dados do novo usuário
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-white mb-2">Criar Usuário</h2>
-          <p className="text-gray-400 text-sm">Preencha os dados do novo usuário</p>
-        </div>
-
-        {registerMutation.isError && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
-            {registerMutation.error instanceof ApiError 
-              ? registerMutation.error.message 
-              : 'Falha ao criar usuário. Tente novamente.'}
-          </div>
-        )}
+        <ErrorDisplay
+          error={registerMutation.error}
+          fallbackMessage="Falha ao criar usuário. Tente novamente."
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
               Nome
             </label>
             <input
@@ -78,7 +90,10 @@ export default function RegisterModal({ isOpen, onClose, onSuccess }: RegisterMo
           </div>
 
           <div>
-            <label htmlFor="register-email" className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              htmlFor="register-email"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
               Email
             </label>
             <input
@@ -94,7 +109,10 @@ export default function RegisterModal({ isOpen, onClose, onSuccess }: RegisterMo
           </div>
 
           <div>
-            <label htmlFor="register-password" className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              htmlFor="register-password"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
               Senha
             </label>
             <div className="relative">
@@ -128,7 +146,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess }: RegisterMo
             {registerMutation.isPending ? 'Criando...' : 'Criar Usuário'}
           </button>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

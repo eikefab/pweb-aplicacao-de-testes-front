@@ -6,7 +6,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public data?: any
+    public data?: any,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -16,10 +16,10 @@ export class ApiError extends Error {
 
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
-  
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -40,7 +40,8 @@ export async function apiRequest<T = any>(
     }
 
     if (!response.ok) {
-      const errorMessage = data?.message || data?.error || `Erro na requisição: ${response.status}`
+      const errorMessage =
+        data?.message || data?.error || `Erro na requisição: ${response.status}`
       throw new ApiError(response.status, errorMessage, data)
     }
 

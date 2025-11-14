@@ -11,7 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
+import { ErrorDisplay } from '@/components/ErrorDisplay'
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -19,14 +20,22 @@ interface CreateUserModalProps {
   onSuccess?: () => void
 }
 
-export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
+export function CreateUserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateUserModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: { name: string; email: string; password: string }) => {
+    mutationFn: async (data: {
+      name: string
+      email: string
+      password: string
+    }) => {
       return api.post('/auth/register', data)
     },
     onSuccess: () => {
@@ -53,13 +62,10 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
           </DialogDescription>
         </DialogHeader>
 
-        {createUserMutation.isError && (
-          <div className="p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
-            {createUserMutation.error instanceof ApiError 
-              ? createUserMutation.error.message 
-              : 'Falha ao criar usuário. Tente novamente.'}
-          </div>
-        )}
+        <ErrorDisplay
+          error={createUserMutation.error}
+          fallbackMessage="Falha ao criar usuário. Tente novamente."
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

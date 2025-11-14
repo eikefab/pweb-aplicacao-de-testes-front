@@ -3,8 +3,9 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { auth } from '../lib/auth'
-import { api, ApiError } from '../lib/api'
+import { api } from '../lib/api'
 import RegisterModal from '../components/RegisterModal'
+import { ErrorDisplay } from '../components/ErrorDisplay'
 
 export const Route = createFileRoute('/login')({ component: Login })
 
@@ -17,10 +18,14 @@ function Login() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      return api.post<{ token: string }>('/auth/login', credentials)
+      return api.post<{
+        user: { id: string; email: string; name: string; password: string }
+        token: string
+      }>('/auth/login', credentials)
     },
     onSuccess: (response) => {
       auth.setToken(response.token)
+      auth.setUserId(response.user.id)
       navigate({ to: '/' })
     },
   })
@@ -31,24 +36,24 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-6">
       <div className="max-w-md w-full bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Testa Aí</h1>
           <p className="text-gray-400 text-sm">Faça login para acessar</p>
         </div>
-        
-        {loginMutation.isError && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
-            {loginMutation.error instanceof ApiError 
-              ? loginMutation.error.message 
-              : 'Falha no login. Tente novamente.'}
-          </div>
-        )}
+
+        <ErrorDisplay
+          error={loginMutation.error}
+          fallbackMessage="Falha no login. Tente novamente."
+        />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
               Email
             </label>
             <input
@@ -64,7 +69,10 @@ function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
               Senha
             </label>
             <div className="relative">
@@ -111,8 +119,8 @@ function Login() {
         </div>
       </div>
 
-      <RegisterModal 
-        isOpen={isRegisterModalOpen} 
+      <RegisterModal
+        isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
         onSuccess={(response) => {
           auth.setToken(response.token)
