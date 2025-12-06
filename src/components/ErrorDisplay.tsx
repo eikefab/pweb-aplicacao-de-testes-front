@@ -31,26 +31,20 @@ export function ErrorDisplay({
   const errorSlug = isApiError ? error.data?.error : undefined
   const isValidation = isValidationError(errorSlug)
 
-  // Para erros de validação, extrair array de details
   const validationErrors: ValidationErrorDetail[] | undefined =
     isValidation && isApiError && Array.isArray(error.data?.details)
       ? error.data.details
       : undefined
 
-  // Determinar mensagem a ser exibida
   let displayMessage: string
 
   if (isValidation && validationErrors && validationErrors.length > 0) {
-    // Para erros de validação, usar mensagem padrão (a lista será exibida abaixo)
     displayMessage = 'Corrija os seguintes erros:'
   } else if (isApiError && errorSlug) {
-    // Traduzir error slug ou usar mensagem da API como fallback
     displayMessage = translateErrorSlug(errorSlug, error.message)
   } else if (isApiError) {
-    // ApiError sem slug
     displayMessage = error.message || fallbackMessage
   } else {
-    // Error genérico
     displayMessage = error.message || fallbackMessage
   }
 
@@ -58,7 +52,6 @@ export function ErrorDisplay({
     <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
       <p className="font-medium">{displayMessage}</p>
 
-      {/* Exibir lista de erros de validação */}
       {validationErrors && validationErrors.length > 0 && (
         <ul className="mt-2 space-y-1 ml-4">
           {validationErrors.map((validationError, index) => (

@@ -101,28 +101,18 @@ function TestDetail() {
   const [newOptionIsCorrect, setNewOptionIsCorrect] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [isAddParticipantsOpen, setIsAddParticipantsOpen] = useState(false)
-
-  // View answers state
   const [viewAnswersUser, setViewAnswersUser] = useState<{
     userId: string
     userName: string
   } | null>(null)
-
-  // Answer mode state
   const [isAnsweringMode, setIsAnsweringMode] = useState(false)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
-
-  // Edit question state
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
   const [editQuestionText, setEditQuestionText] = useState('')
-
-  // Edit option state
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null)
   const [editOptionDescription, setEditOptionDescription] = useState('')
   const [editOptionIsCorrect, setEditOptionIsCorrect] = useState(false)
-
-  // Delete confirmation state
   const [deleteConfirmQuestion, setDeleteConfirmQuestion] = useState<{
     questionId: string
     questionText: string
@@ -145,7 +135,6 @@ function TestDetail() {
   const questions = test?.questions
   const assignees = test?.assignees
 
-  // Extract all answers from questions
   const existingAnswers = useMemo(() => {
     if (!questions) return []
     const allAnswers: Answer[] = []
@@ -157,7 +146,6 @@ function TestDetail() {
     return allAnswers
   }, [questions])
 
-  // Helper to check if a user has answered
   const hasUserAnswered = (userId: string) => {
     return existingAnswers?.some((answer) => answer.userId === userId) || false
   }
@@ -257,19 +245,16 @@ function TestDetail() {
   const submitAnswersMutation = useMutation({
     mutationFn: async (answers: Record<string, string>) => {
       const promises = Object.entries(answers).map(async ([questionId, optionId]) => {
-        // Check if user already has an answer for this question
         const existingAnswer = existingAnswers.find(
           (a) => a.testQuestionId === questionId && a.userId === currentUserId
         )
 
         if (existingAnswer) {
-          // Update existing answer
           return api.patch(
             `/tests/${testId}/questions/${questionId}/answers/${existingAnswer.id}`,
             { testQuestionOptionId: optionId }
           )
         } else {
-          // Create new answer
           return api.post(`/tests/${testId}/questions/${questionId}/answers`, {
             testQuestionOptionId: optionId,
           })
@@ -316,7 +301,6 @@ function TestDetail() {
     })
   }
 
-  // Edit question handlers
   const handleEditQuestion = (questionId: string, questionText: string) => {
     setEditingQuestionId(questionId)
     setEditQuestionText(questionText)
@@ -347,7 +331,6 @@ function TestDetail() {
     setValidationError(null)
   }
 
-  // Delete question handlers
   const handleDeleteQuestion = (questionId: string, questionText: string) => {
     setDeleteConfirmQuestion({ questionId, questionText })
   }
@@ -358,7 +341,6 @@ function TestDetail() {
     }
   }
 
-  // Edit option handlers
   const handleEditOption = (
     optionId: string,
     description: string,
@@ -401,7 +383,6 @@ function TestDetail() {
     setValidationError(null)
   }
 
-  // Delete option handlers
   const handleDeleteOption = (
     questionId: string,
     optionId: string,
@@ -419,9 +400,7 @@ function TestDetail() {
     }
   }
 
-  // Answer handlers
   const handleStartAnswering = () => {
-    // Initialize with existing answers if any
     if (existingAnswers && currentUserId) {
       const answersMap: Record<string, string> = {}
       existingAnswers
@@ -451,7 +430,6 @@ function TestDetail() {
     setSelectedAnswers({})
   }
 
-  // Define columns for results table
   const columns = useMemo<ColumnDef<Result>[]>(
     () => [
       {
@@ -528,7 +506,6 @@ function TestDetail() {
   return (
     <div className="min-h-screen overflow-hidden bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-6 py-12 h-full overflow-y-auto">
-        {/* Test Info */}
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-8 mb-8">
           <div className="flex items-start gap-4 mb-6">
             <div className="p-3 bg-cyan-500/20 rounded-full">
@@ -562,7 +539,6 @@ function TestDetail() {
           fallbackMessage="Falha ao carregar detalhes do teste. Tente novamente."
         />
 
-        {/* Questions Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Questões</h2>
@@ -785,7 +761,6 @@ function TestDetail() {
                   </div>
                 )}
 
-                {/* Options */}
                 <div className="space-y-2 mb-4">
                   {question.options?.map((option) => (
                     <div key={option.id}>
@@ -919,7 +894,6 @@ function TestDetail() {
                   ))}
                 </div>
 
-                {/* Add Option Form */}
                 {isCreator && selectedQuestionId === question.id ? (
                   <form
                     onSubmit={(e) => handleCreateOption(e, question.id)}
@@ -992,7 +966,6 @@ function TestDetail() {
           )}
         </div>
 
-        {/* Assignees Section - Only visible to creator */}
         {isCreator && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -1115,7 +1088,6 @@ function TestDetail() {
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['test', testId] })}
         />
 
-        {/* View Answers Modal */}
         <ViewAnswersModal
           isOpen={viewAnswersUser !== null}
           onClose={() => setViewAnswersUser(null)}
@@ -1125,7 +1097,6 @@ function TestDetail() {
           questions={questions}
         />
 
-        {/* Delete Question Confirmation Dialog */}
         <ConfirmDialog
           isOpen={deleteConfirmQuestion !== null}
           onClose={() => setDeleteConfirmQuestion(null)}
@@ -1138,7 +1109,6 @@ function TestDetail() {
           isLoading={deleteQuestionMutation.isPending}
         />
 
-        {/* Delete Option Confirmation Dialog */}
         <ConfirmDialog
           isOpen={deleteConfirmOption !== null}
           onClose={() => setDeleteConfirmOption(null)}

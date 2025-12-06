@@ -42,7 +42,6 @@ export default function TestModal({
     onSuccess: () => {
       onClose()
       onSuccess?.()
-      // Reset form
       setTitle('')
       setDescription('')
       setStartDate('')

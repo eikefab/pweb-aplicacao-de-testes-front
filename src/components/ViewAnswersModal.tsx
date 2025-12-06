@@ -37,7 +37,6 @@ export function ViewAnswersModal({
   userName,
   questions,
 }: ViewAnswersModalProps) {
-  // Extract user's answers from questions
   const userAnswers = useMemo(() => {
     if (!questions) return []
     const answers: Answer[] = []
@@ -80,7 +79,6 @@ export function ViewAnswersModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <div>
             <h2 className="text-2xl font-bold text-white">Respostas de {userName}</h2>
@@ -98,7 +96,6 @@ export function ViewAnswersModal({
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {!userAnswers || userAnswers.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
@@ -173,7 +170,6 @@ export function ViewAnswersModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-slate-700">
           <button
             onClick={onClose}

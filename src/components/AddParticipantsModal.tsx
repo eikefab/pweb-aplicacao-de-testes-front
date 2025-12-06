@@ -51,14 +51,12 @@ export function AddParticipantsModal({
     new Set(),
   )
 
-  // Fetch all users
   const { data: allUsers, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => api.get('/users'),
     enabled: isOpen,
   })
 
-  // Fetch current assignees
   const { data: assignees, isLoading: assigneesLoading } = useQuery<Assignee[]>(
     {
       queryKey: ['assignees', testId],
@@ -67,7 +65,6 @@ export function AddParticipantsModal({
     },
   )
 
-  // Initialize selected users when data loads
   useEffect(() => {
     if (assignees) {
       const assignedIds = new Set(assignees.map((a) => a.userId))
@@ -76,13 +73,11 @@ export function AddParticipantsModal({
     }
   }, [assignees])
 
-  // Add participant mutation
   const addMutation = useMutation({
     mutationFn: (userId: string) =>
       api.post(`/tests/${testId}/assign`, { userId }),
   })
 
-  // Remove participant mutation
   const removeMutation = useMutation({
     mutationFn: (assigneeId: string) =>
       api.delete(`/tests/${testId}/assignees/${assigneeId}`),
@@ -101,7 +96,6 @@ export function AddParticipantsModal({
   }
 
   const handleSave = async () => {
-    // Determine which users to add and which to remove
     const toAdd = Array.from(selectedUserIds).filter(
       (id) => !initialAssignedIds.has(id),
     )
@@ -110,10 +104,8 @@ export function AddParticipantsModal({
     )
 
     try {
-      // Add new participants
       const addPromises = toAdd.map((userId) => addMutation.mutateAsync(userId))
 
-      // Remove participants - need to find assignee ID for each userId
       const removePromises = toRemove.map((userId) => {
         const assignee = assignees?.find((a) => a.userId === userId)
         if (assignee) {
@@ -127,13 +119,11 @@ export function AddParticipantsModal({
       onSuccess?.()
       onClose()
     } catch (error) {
-      // Errors are handled by mutations
       console.error('Error updating participants:', error)
     }
   }
 
   const handleClose = () => {
-    // Reset to initial state on close
     setSelectedUserIds(initialAssignedIds)
     onClose()
   }
