@@ -33,6 +33,9 @@ export const errorSlugTranslations: Record<string, string> = {
   'tests/assignees/already-exists':
     'Este usuário já está atribuído a este teste',
 
+  // Answer errors
+  'tests/questions/answers/not-found': 'Resposta não encontrada',
+
   // Validation errors
   'bad-request/validation-failed': 'Erro de validação nos dados enviados',
 

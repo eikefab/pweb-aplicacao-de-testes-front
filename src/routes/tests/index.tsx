@@ -31,7 +31,7 @@ function Tests() {
   })
 
   return (
-    <div className="min-h-screen overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen overflow-hidden bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-6 py-12 h-full overflow-y-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

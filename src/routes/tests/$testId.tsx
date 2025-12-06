@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
-import { Calendar, FileText, Users, Plus, Wrench, Edit, Trash2 } from 'lucide-react'
+import { Calendar, FileText, Users, Plus, Wrench, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react'
 import { z } from 'zod'
 import {
   useReactTable,
@@ -14,6 +14,7 @@ import { auth } from '../../lib/auth'
 import { ErrorDisplay } from '../../components/ErrorDisplay'
 import { AddParticipantsModal } from '../../components/AddParticipantsModal'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ViewAnswersModal } from '../../components/ViewAnswersModal'
 
 export const Route = createFileRoute('/tests/$testId')({
   component: TestDetail,
@@ -31,8 +32,14 @@ interface Test {
   description: string
   startDate: string
   endDate: string
-  createdBy: string
+  creator: {
+    id: string
+    name: string
+    email: string
+  }
   createdAt?: string
+  questions?: Question[]
+  assignees?: Assignee[]
   results?: Result[]
 }
 
@@ -42,6 +49,7 @@ interface Question {
   createdBy: string
   createdAt?: string
   options?: QuestionOption[]
+  answers?: Answer[]
 }
 
 interface QuestionOption {
@@ -62,6 +70,13 @@ interface Assignee {
 interface Result {
   user: User
   score: number
+}
+
+interface Answer {
+  id: string
+  testQuestionId: string
+  testQuestionOptionId: string
+  userId: string
 }
 
 const createQuestionSchema = z.object({
@@ -86,6 +101,17 @@ function TestDetail() {
   const [newOptionIsCorrect, setNewOptionIsCorrect] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [isAddParticipantsOpen, setIsAddParticipantsOpen] = useState(false)
+
+  // View answers state
+  const [viewAnswersUser, setViewAnswersUser] = useState<{
+    userId: string
+    userName: string
+  } | null>(null)
+
+  // Answer mode state
+  const [isAnsweringMode, setIsAnsweringMode] = useState(false)
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
+  const [hasSubmitted, setHasSubmitted] = useState(false)
 
   // Edit question state
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
@@ -116,30 +142,32 @@ function TestDetail() {
     queryFn: () => api.get(`/tests/${testId}`),
   })
 
-  const {
-    data: questions,
-    error: questionsError,
-    refetch: refetchQuestions,
-  } = useQuery<Question[]>({
-    queryKey: ['questions', testId],
-    queryFn: () => api.get(`/tests/${testId}/questions`),
-  })
+  const questions = test?.questions
+  const assignees = test?.assignees
 
-  const {
-    data: assignees,
-    error: assigneesError,
-    refetch: refetchAssignees,
-  } = useQuery<Assignee[]>({
-    queryKey: ['assignees', testId],
-    queryFn: () => api.get(`/tests/${testId}/assignees`),
-  })
+  // Extract all answers from questions
+  const existingAnswers = useMemo(() => {
+    if (!questions) return []
+    const allAnswers: Answer[] = []
+    questions.forEach((question) => {
+      if (question.answers) {
+        allAnswers.push(...question.answers)
+      }
+    })
+    return allAnswers
+  }, [questions])
+
+  // Helper to check if a user has answered
+  const hasUserAnswered = (userId: string) => {
+    return existingAnswers?.some((answer) => answer.userId === userId) || false
+  }
 
   const createQuestionMutation = useMutation({
     mutationFn: async (data: { question: string }) => {
       return api.post(`/tests/${testId}/questions`, data)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions', testId] })
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
       setNewQuestion('')
       setIsAddingQuestion(false)
       setValidationError(null)
@@ -158,7 +186,7 @@ function TestDetail() {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions', testId] })
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
       setNewOptionDescription('')
       setNewOptionIsCorrect(false)
       setSelectedQuestionId(null)
@@ -173,7 +201,7 @@ function TestDetail() {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions', testId] })
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
       setEditingQuestionId(null)
       setEditQuestionText('')
       setValidationError(null)
@@ -185,7 +213,7 @@ function TestDetail() {
       return api.delete(`/tests/${testId}/questions/${questionId}`)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions', testId] })
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
       setDeleteConfirmQuestion(null)
     },
   })
@@ -206,7 +234,7 @@ function TestDetail() {
       )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions', testId] })
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
       setEditingOptionId(null)
       setEditOptionDescription('')
       setEditOptionIsCorrect(false)
@@ -221,8 +249,38 @@ function TestDetail() {
       )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions', testId] })
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
       setDeleteConfirmOption(null)
+    },
+  })
+
+  const submitAnswersMutation = useMutation({
+    mutationFn: async (answers: Record<string, string>) => {
+      const promises = Object.entries(answers).map(async ([questionId, optionId]) => {
+        // Check if user already has an answer for this question
+        const existingAnswer = existingAnswers.find(
+          (a) => a.testQuestionId === questionId && a.userId === currentUserId
+        )
+
+        if (existingAnswer) {
+          // Update existing answer
+          return api.patch(
+            `/tests/${testId}/questions/${questionId}/answers/${existingAnswer.id}`,
+            { testQuestionOptionId: optionId }
+          )
+        } else {
+          // Create new answer
+          return api.post(`/tests/${testId}/questions/${questionId}/answers`, {
+            testQuestionOptionId: optionId,
+          })
+        }
+      })
+      await Promise.all(promises)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['test', testId] })
+      setHasSubmitted(true)
+      setIsAnsweringMode(false)
     },
   })
 
@@ -361,6 +419,38 @@ function TestDetail() {
     }
   }
 
+  // Answer handlers
+  const handleStartAnswering = () => {
+    // Initialize with existing answers if any
+    if (existingAnswers && currentUserId) {
+      const answersMap: Record<string, string> = {}
+      existingAnswers
+        .filter((answer) => answer.userId === currentUserId)
+        .forEach((answer) => {
+          answersMap[answer.testQuestionId] = answer.testQuestionOptionId
+        })
+      setSelectedAnswers(answersMap)
+    }
+    setIsAnsweringMode(true)
+    setHasSubmitted(false)
+  }
+
+  const handleSelectAnswer = (questionId: string, optionId: string) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [questionId]: optionId,
+    }))
+  }
+
+  const handleSubmitAnswers = () => {
+    submitAnswersMutation.mutate(selectedAnswers)
+  }
+
+  const handleCancelAnswering = () => {
+    setIsAnsweringMode(false)
+    setSelectedAnswers({})
+  }
+
   // Define columns for results table
   const columns = useMemo<ColumnDef<Result>[]>(
     () => [
@@ -408,7 +498,14 @@ function TestDetail() {
     getCoreRowModel: getCoreRowModel(),
   })
 
-  const isCreator = test?.createdBy === currentUserId
+  const isCreator = test?.creator?.id === currentUserId
+  const isAssignee = assignees?.some((a) => a.userId === currentUserId)
+  const hasAnswered = existingAnswers && existingAnswers.length > 0
+  const now = new Date()
+  const testStartDate = test ? new Date(test.startDate) : null
+  const testEndDate = test ? new Date(test.endDate) : null
+  const isTestActive = testStartDate && testEndDate && now >= testStartDate && now <= testEndDate
+  const canAnswer = !isCreator && isAssignee && isTestActive
 
   if (testLoading) {
     return (
@@ -467,21 +564,27 @@ function TestDetail() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Questões</h2>
-            {isCreator && (
-              <button
-                onClick={() => setIsAddingQuestion(!isAddingQuestion)}
-                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
-              >
-                <Plus size={20} />
-                Nova Questão
-              </button>
-            )}
+            <div className="flex gap-2">
+              {canAnswer && !isAnsweringMode && (
+                <button
+                  onClick={handleStartAnswering}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                >
+                  <FileText size={20} />
+                  {hasAnswered ? 'Editar Respostas' : 'Responder Teste'}
+                </button>
+              )}
+              {isCreator && !isAnsweringMode && (
+                <button
+                  onClick={() => setIsAddingQuestion(!isAddingQuestion)}
+                  className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
+                >
+                  <Plus size={20} />
+                  Nova Questão
+                </button>
+              )}
+            </div>
           </div>
-
-          <ErrorDisplay
-            error={questionsError}
-            fallbackMessage="Falha ao carregar questões. Tente novamente."
-          />
 
           {validationError && (
             <ErrorDisplay
@@ -499,6 +602,50 @@ function TestDetail() {
             error={createOptionMutation.error}
             fallbackMessage="Falha ao criar alternativa. Tente novamente."
           />
+
+          <ErrorDisplay
+            error={submitAnswersMutation.error}
+            fallbackMessage="Falha ao enviar respostas. Tente novamente."
+          />
+
+          {hasSubmitted && (
+            <div className="bg-green-500/20 border border-green-500 rounded-xl p-4 mb-6">
+              <p className="text-green-400 font-semibold">
+                ✓ Respostas enviadas com sucesso!
+              </p>
+            </div>
+          )}
+
+          {isAnsweringMode && (
+            <div className="bg-blue-500/20 border border-blue-500 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-blue-400 font-semibold">
+                  Modo de resposta ativo - Selecione uma alternativa para cada questão
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSubmitAnswers}
+                    disabled={submitAnswersMutation.isPending || Object.keys(selectedAnswers).length !== questions?.length}
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitAnswersMutation.isPending ? 'Enviando...' : 'Enviar Respostas'}
+                  </button>
+                  <button
+                    onClick={handleCancelAnswering}
+                    disabled={submitAnswersMutation.isPending}
+                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+              {questions && Object.keys(selectedAnswers).length < questions.length && (
+                <p className="text-blue-300 text-sm mt-2">
+                  {Object.keys(selectedAnswers).length} de {questions.length} questões respondidas
+                </p>
+              )}
+            </div>
+          )}
 
           {isAddingQuestion && (
             <form
@@ -615,7 +762,7 @@ function TestDetail() {
                 <div className="space-y-2 mb-4">
                   {question.options?.map((option) => (
                     <div key={option.id}>
-                      {editingOptionId === option.id ? (
+                      {editingOptionId === option.id && isCreator ? (
                         /* Edit Option Form */
                         <form
                           onSubmit={(e) =>
@@ -670,45 +817,66 @@ function TestDetail() {
                       ) : (
                         /* Option Display */
                         <div
-                          className={`p-3 rounded-lg border ${
-                            option.isCorrect
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            isAnsweringMode
+                              ? selectedAnswers[question.id] === option.id
+                                ? 'bg-cyan-500/20 border-cyan-500'
+                                : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
+                              : option.isCorrect && isCreator
                               ? 'bg-green-500/10 border-green-500/50'
                               : 'bg-slate-700/50 border-slate-600'
                           }`}
+                          onClick={() =>
+                            isAnsweringMode &&
+                            handleSelectAnswer(question.id, option.id)
+                          }
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-300 flex-1">
-                              {option.description}
-                            </span>
+                            <div className="flex items-center gap-3 flex-1">
+                              {isAnsweringMode && (
+                                <input
+                                  type="radio"
+                                  name={`question-${question.id}`}
+                                  checked={selectedAnswers[question.id] === option.id}
+                                  onChange={() => handleSelectAnswer(question.id, option.id)}
+                                  className="w-4 h-4 text-cyan-500"
+                                />
+                              )}
+                              <span className="text-gray-300 flex-1">
+                                {option.description}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-2">
-                              {option.isCorrect && (
+                              {!isAnsweringMode && option.isCorrect && isCreator && (
                                 <span className="text-xs text-green-400 font-semibold">
                                   Correta
                                 </span>
                               )}
-                              {isCreator && (
+                              {isCreator && !isAnsweringMode && (
                                 <>
                                   <button
-                                    onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation()
                                       handleEditOption(
                                         option.id,
                                         option.description,
                                         option.isCorrect,
                                       )
-                                    }
+                                    }}
                                     className="p-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded transition-colors"
                                     title="Editar alternativa"
                                   >
                                     <Edit size={16} />
                                   </button>
                                   <button
-                                    onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation()
                                       handleDeleteOption(
                                         question.id,
                                         option.id,
                                         option.description,
                                       )
-                                    }
+                                    }}
                                     className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
                                     title="Excluir alternativa"
                                   >
@@ -797,11 +965,11 @@ function TestDetail() {
           )}
         </div>
 
-        {/* Assignees Section */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Participantes</h2>
-            {isCreator && (
+        {/* Assignees Section - Only visible to creator */}
+        {isCreator && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Participantes</h2>
               <button
                 onClick={() => setIsAddParticipantsOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
@@ -809,43 +977,56 @@ function TestDetail() {
                 <Wrench size={20} />
                 Gerenciar participantes
               </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {assignees?.map((assignee) => {
+                const hasAnswered = hasUserAnswered(assignee.userId)
+                return (
+                  <div
+                    key={assignee.id}
+                    onClick={() =>
+                      setViewAnswersUser({
+                        userId: assignee.userId,
+                        userName: assignee.user?.name || 'Usuário',
+                      })
+                    }
+                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-cyan-500/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-cyan-500/20 rounded-full">
+                        <Users className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-medium">
+                          {assignee.user?.name || 'Usuário'}
+                        </p>
+                        <p className="text-gray-400 text-sm">
+                          {assignee.user?.email || assignee.userId}
+                        </p>
+                      </div>
+                      {hasAnswered ? (
+                        <div className="flex items-center gap-1 text-green-400" title="Respondeu">
+                          <CheckCircle className="w-5 h-5" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-gray-500" title="Não respondeu">
+                          <XCircle className="w-5 h-5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {(!assignees || assignees.length === 0) && (
+              <div className="text-center py-12 text-gray-400">
+                Nenhum participante atribuído ainda
+              </div>
             )}
           </div>
-
-          <ErrorDisplay
-            error={assigneesError}
-            fallbackMessage="Falha ao carregar participantes. Tente novamente."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {assignees?.map((assignee) => (
-              <div
-                key={assignee.id}
-                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-cyan-500/20 rounded-full">
-                    <Users className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">
-                      {assignee.user?.name || 'Usuário'}
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      {assignee.user?.email || assignee.userId}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {(!assignees || assignees.length === 0) && (
-            <div className="text-center py-12 text-gray-400">
-              Nenhum participante atribuído ainda
-            </div>
-          )}
-        </div>
+        )}
 
         {test?.results && test.results.length > 0 && (
           <div className="mt-8">
@@ -903,8 +1084,18 @@ function TestDetail() {
           isOpen={isAddParticipantsOpen}
           onClose={() => setIsAddParticipantsOpen(false)}
           testId={testId}
-          createdBy={test?.createdBy}
-          onSuccess={() => refetchAssignees()}
+          createdBy={test?.creator?.id}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['test', testId] })}
+        />
+
+        {/* View Answers Modal */}
+        <ViewAnswersModal
+          isOpen={viewAnswersUser !== null}
+          onClose={() => setViewAnswersUser(null)}
+          testId={testId}
+          userId={viewAnswersUser?.userId || ''}
+          userName={viewAnswersUser?.userName || ''}
+          questions={questions}
         />
 
         {/* Delete Question Confirmation Dialog */}
