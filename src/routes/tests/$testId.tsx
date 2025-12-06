@@ -10,6 +10,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import { api } from '../../lib/api'
+import { auth } from '../../lib/auth'
 import { ErrorDisplay } from '../../components/ErrorDisplay'
 import { AddParticipantsModal } from '../../components/AddParticipantsModal'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -75,6 +76,7 @@ const createOptionSchema = z.object({
 function TestDetail() {
   const { testId } = Route.useParams()
   const queryClient = useQueryClient()
+  const currentUserId = auth.getUserId()
   const [isAddingQuestion, setIsAddingQuestion] = useState(false)
   const [newQuestion, setNewQuestion] = useState('')
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
@@ -406,9 +408,11 @@ function TestDetail() {
     getCoreRowModel: getCoreRowModel(),
   })
 
+  const isCreator = test?.createdBy === currentUserId
+
   if (testLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Carregando...</div>
       </div>
     )
@@ -416,14 +420,14 @@ function TestDetail() {
 
   if (!test) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Teste não encontrado</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen overflow-hidden bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-6 py-12 h-full overflow-y-auto">
         {/* Test Info */}
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-8 mb-8">
@@ -463,13 +467,15 @@ function TestDetail() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Questões</h2>
-            <button
-              onClick={() => setIsAddingQuestion(!isAddingQuestion)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
-            >
-              <Plus size={20} />
-              Nova Questão
-            </button>
+            {isCreator && (
+              <button
+                onClick={() => setIsAddingQuestion(!isAddingQuestion)}
+                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
+              >
+                <Plus size={20} />
+                Nova Questão
+              </button>
+            )}
           </div>
 
           <ErrorDisplay
@@ -580,26 +586,28 @@ function TestDetail() {
                     <h3 className="text-lg font-semibold text-white flex-1">
                       {index + 1}. {question.question}
                     </h3>
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={() =>
-                          handleEditQuestion(question.id, question.question)
-                        }
-                        className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded transition-colors"
-                        title="Editar questão"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteQuestion(question.id, question.question)
-                        }
-                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
-                        title="Excluir questão"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    {isCreator && (
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() =>
+                            handleEditQuestion(question.id, question.question)
+                          }
+                          className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded transition-colors"
+                          title="Editar questão"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteQuestion(question.id, question.question)
+                          }
+                          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                          title="Excluir questão"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -678,32 +686,36 @@ function TestDetail() {
                                   Correta
                                 </span>
                               )}
-                              <button
-                                onClick={() =>
-                                  handleEditOption(
-                                    option.id,
-                                    option.description,
-                                    option.isCorrect,
-                                  )
-                                }
-                                className="p-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded transition-colors"
-                                title="Editar alternativa"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteOption(
-                                    question.id,
-                                    option.id,
-                                    option.description,
-                                  )
-                                }
-                                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
-                                title="Excluir alternativa"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {isCreator && (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      handleEditOption(
+                                        option.id,
+                                        option.description,
+                                        option.isCorrect,
+                                      )
+                                    }
+                                    className="p-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded transition-colors"
+                                    title="Editar alternativa"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteOption(
+                                        question.id,
+                                        option.id,
+                                        option.description,
+                                      )
+                                    }
+                                    className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                                    title="Excluir alternativa"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -713,7 +725,7 @@ function TestDetail() {
                 </div>
 
                 {/* Add Option Form */}
-                {selectedQuestionId === question.id ? (
+                {isCreator && selectedQuestionId === question.id ? (
                   <form
                     onSubmit={(e) => handleCreateOption(e, question.id)}
                     className="mt-4 p-4 bg-slate-700/30 rounded-lg"
@@ -765,12 +777,14 @@ function TestDetail() {
                     </div>
                   </form>
                 ) : (
-                  <button
-                    onClick={() => setSelectedQuestionId(question.id)}
-                    className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors"
-                  >
-                    + Adicionar Alternativa
-                  </button>
+                  isCreator && (
+                    <button
+                      onClick={() => setSelectedQuestionId(question.id)}
+                      className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors"
+                    >
+                      + Adicionar Alternativa
+                    </button>
+                  )
                 )}
               </div>
             ))}
@@ -787,13 +801,15 @@ function TestDetail() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Participantes</h2>
-            <button
-              onClick={() => setIsAddParticipantsOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
-            >
-              <Wrench size={20} />
-              Gerenciar participantes
-            </button>
+            {isCreator && (
+              <button
+                onClick={() => setIsAddParticipantsOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
+              >
+                <Wrench size={20} />
+                Gerenciar participantes
+              </button>
+            )}
           </div>
 
           <ErrorDisplay
