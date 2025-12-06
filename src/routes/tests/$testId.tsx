@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
-import { Calendar, FileText, Users, Plus, Wrench, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { Calendar, FileText, Users, Plus, Wrench, Edit, Trash2, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { z } from 'zod'
 import {
   useReactTable,
@@ -506,6 +506,8 @@ function TestDetail() {
   const testEndDate = test ? new Date(test.endDate) : null
   const isTestActive = testStartDate && testEndDate && now >= testStartDate && now <= testEndDate
   const canAnswer = !isCreator && isAssignee && isTestActive
+  const isTestNotStarted = testStartDate && now < testStartDate
+  const isTestEnded = testEndDate && now > testEndDate
 
   if (testLoading) {
     return (
@@ -586,6 +588,28 @@ function TestDetail() {
             </div>
           </div>
 
+          {!isCreator && isAssignee && isTestNotStarted && (
+            <div className="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-yellow-400" />
+                <p className="text-yellow-400 font-semibold">
+                  Este teste ainda não iniciou. Ele estará disponível a partir de {testStartDate?.toLocaleString('pt-BR')}.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!isCreator && isAssignee && isTestEnded && (
+            <div className="bg-red-500/20 border border-red-500 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+                <p className="text-red-400 font-semibold">
+                  Este teste já encerrou em {testEndDate?.toLocaleString('pt-BR')}. Não é mais possível responder.
+                </p>
+              </div>
+            </div>
+          )}
+
           {validationError && (
             <ErrorDisplay
               error={new Error(validationError)}
@@ -610,9 +634,12 @@ function TestDetail() {
 
           {hasSubmitted && (
             <div className="bg-green-500/20 border border-green-500 rounded-xl p-4 mb-6">
-              <p className="text-green-400 font-semibold">
-                ✓ Respostas enviadas com sucesso!
-              </p>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <p className="text-green-400 font-semibold">
+                  Respostas enviadas com sucesso!
+                </p>
+              </div>
             </div>
           )}
 
