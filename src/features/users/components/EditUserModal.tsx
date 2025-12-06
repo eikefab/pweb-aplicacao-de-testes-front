@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
+import { auth } from '@/lib/auth'
 import { ErrorDisplay } from '@/components/ErrorDisplay'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
@@ -45,6 +46,8 @@ export function EditUserModal({
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const currentUserId = auth.getUserId()
+  const isCurrentUser = user?.id === currentUserId
 
   useEffect(() => {
     if (user) {
@@ -97,6 +100,7 @@ export function EditUserModal({
   }
 
   const handleDelete = () => {
+    if (isCurrentUser) return
     setIsDeleteDialogOpen(true)
   }
 
@@ -189,16 +193,18 @@ export function EditUserModal({
             >
               {editUserMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              onClick={handleDelete}
-              disabled={deleteUserMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              <Trash2 size={18} />
-            </Button>
+            {!isCurrentUser && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                onClick={handleDelete}
+                disabled={deleteUserMutation.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 size={18} />
+              </Button>
+            )}
           </div>
         </form>
 

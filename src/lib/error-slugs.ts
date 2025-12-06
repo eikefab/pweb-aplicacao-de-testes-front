@@ -16,6 +16,7 @@ export const errorSlugTranslations: Record<string, string> = {
   // User errors
   'users/not-found': 'Usuário não encontrado',
   'users/email-conflict': 'Este e-mail já está cadastrado',
+  'users/has-created-content': 'Não é possível excluir usuário que criou testes ou questões',
 
   // Test errors
   'tests/not-found': 'Teste não encontrado',
